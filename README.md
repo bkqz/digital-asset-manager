@@ -44,24 +44,24 @@ flowchart LR
     classDef storage fill:#FFFDE7,stroke:#F9A825,stroke-width:4px,color:#BF360C,font-weight:800;
     classDef query fill:#F3E5F5,stroke:#7B1FA2,stroke-width:4px,color:#4A148C,font-weight:800;
 
-    subgraph INGESTION ["INGESTION FLOW"]
+    subgraph INGESTION [" INGESTION FLOW "]
         direction TB
-        IMG_UPLOAD[Image Upload] --> SUPA_STORE[Supabase Storage]
-        SUPA_STORE --> LLAMA_VISION[Llama 4 Vision Captioning]
-        LLAMA_VISION --> EMBED_GEN[Generate Vector Embeddings]
-        EMBED_GEN -- "Caption + URL + Vector" --> PINECONE[(Pinecone Index)]
+        IMG_UPLOAD[" Image Upload "] --> SUPA_STORE[" Supabase Storage "]
+        SUPA_STORE --> LLAMA_VISION[" Llama 4 Vision Captioning "]
+        LLAMA_VISION --> EMBED_GEN[" Generate Vector Embeddings "]
+        EMBED_GEN -- " Caption + URL + Vector " --> PINECONE[(" Pinecone Index ")]
     end
 
-    subgraph QUERY ["USER QUERY FLOW"]
+    subgraph QUERY [" USER QUERY FLOW "]
         direction TB
-        USER_INPUT[Natural Language Query] --> QUERY_EMBED[Embed Search Query]
+        USER_INPUT[" Natural Language Query "] --> QUERY_EMBED[" Embed Search Query "]
         QUERY_EMBED -- Similarity Search --> PINECONE
-        PINECONE -- "Top-K Matches" --> STREAMLIT_UI[Streamlit UI Display]
-        STREAMLIT_UI <-- "Contextual Reasoning" --> LLAMA_REASON[Llama 3.3 Reasoning]
+        PINECONE -- " Top-K Matches " --> STREAMLIT_UI[" Streamlit UI Display "]
+        STREAMLIT_UI <-- " Contextual Reasoning " --> LLAMA_REASON[" Llama 3.3 Reasoning "]
     end
 
     %% Interaction Link
-    SUPA_STORE -. "Public URI Source" .-> PINECONE
+    SUPA_STORE -. " Public URI Source " .-> PINECONE
     
     %% Applying Accessible Classes
     class IMG_UPLOAD,LLAMA_VISION,EMBED_GEN ingestion;
