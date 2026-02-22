@@ -44,7 +44,7 @@ flowchart LR
     classDef storage fill:#FFFDE7,stroke:#F9A825,stroke-width:4px,color:#BF360C,font-weight:800;
     classDef query fill:#F3E5F5,stroke:#7B1FA2,stroke-width:4px,color:#4A148C,font-weight:800;
 
-    subgraph INGESTION [" INGESTION FLOW "]
+    subgraph INGESTION ["`INGESTION FLOW`"]
         direction TB
         IMG_UPLOAD[" Image Upload "] --> SUPA_STORE[" Supabase Storage "]
         SUPA_STORE --> LLAMA_VISION[" Llama 4 Vision Captioning "]
@@ -61,7 +61,7 @@ flowchart LR
     end
 
     %% Interaction Link
-    SUPA_STORE -. " Public URI Source " .-> PINECONE
+    SUPA_STORE -. "`Public URI Source`" .-> PINECONE
     
     %% Applying Accessible Classes
     class IMG_UPLOAD,LLAMA_VISION,EMBED_GEN ingestion;
