@@ -21,35 +21,47 @@ This project addresses the challenge of retrieving unstructured visual data thro
 ### High-Level Architecture
 
 ```mermaid
-flowchart LR
-    %% Define Node Styles
-    classDef ingestion fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
-    classDef storage fill:#fff3e0,stroke:#e65100,stroke-width:2px;
-    classDef query fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+%%{init: { 
+  'theme': 'base',
+  'themeVariables': {
+    'fontSize': '18px',
+    'fontFamily': 'arial',
+    'primaryColor': '#ffffff',
+    'primaryBorderColor': '#000000',
+    'lineColor': '#333333',
+    'tertiaryColor': '#f4f4f4'
+  }
+}}%%
 
-    subgraph INGESTION ["Step 1: Ingestion Pipeline (Background)"]
+flowchart LR
+    %% High-Contrast Class Definitions
+    classDef ingestion fill:#BBDEFB,stroke:#0D47A1,stroke-width:3px,color:#000000,font-weight:bold;
+    classDef storage fill:#FFF9C4,stroke:#FBC02D,stroke-width:3px,color:#000000,font-weight:bold;
+    classDef query fill:#E1BEE7,stroke:#4A148C,stroke-width:3px,color:#000000,font-weight:bold;
+
+    subgraph INGESTION ["INGESTION PIPELINE (PRE-PROCESSING)"]
         direction TB
         A[Local Image] --> B[Supabase Storage]
         B --> C[Llama 4 Vision]
         C --> D[Generate Caption]
         D --> E[Embedding Model]
-        E --> F[(Pinecone Vector DB)]
+        E --> F[(Pinecone Index)]
     end
 
-    subgraph QUERY ["Step 2: User Query Flow (Live)"]
+    subgraph QUERY ["USER QUERY FLOW (REAL-TIME)"]
         direction TB
-        G[User Text Search] --> H[Embedding Model]
+        G[Text Search] --> H[Embedding Model]
         H --> I[Similarity Search]
-        I -- Retrieves URL --> F
-        F -- Returns Context --> J[Llama 3.3 Reasoning]
-        J --> K[Streamlit UI Display]
+        I -- Returns URL --> F
+        F -- Context Injection --> J[Llama 3.3 Reasoning]
+        J --> K[Streamlit UI]
     end
 
     %% Interaction Link
     B -. Public URL .-> F
     
-    %% Applying Classes
-    class A,B,C,D,E ingestion;
+    %% Applying Accessible Classes
+    class A,C,D,E ingestion;
     class F,B storage;
     class G,H,I,J,K query;
 ```
