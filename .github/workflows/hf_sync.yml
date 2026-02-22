@@ -13,7 +13,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Push to hub
-        uses: huggingface/hub-sync@v1
+        uses: huggingface/hub-sync@main
         with:
           github_repo_id: bkqz/digital-asset-manager
           huggingface_repo_id: bkqz/digital-asset-manager # Replace with your HF repo ID if different
