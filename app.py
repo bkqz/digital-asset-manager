@@ -51,7 +51,12 @@ with st.sidebar:
                 
                 # Ingest to Pinecone
                 status_text.text(f"Indexing: {uploaded_file.name}...")
-                ingest_image_to_pinecone(file_path)
+                try:
+                    ingest_image_to_pinecone(file_path)
+                except Exception as e:
+                    st.error(f"❌ Error processing {uploaded_file.name}: {e}")
+                    # Continue with next file or stop? For now, we continue.
+                    continue
                 
                 progress_bar.progress((i + 1) / len(uploaded_files))
             
@@ -80,8 +85,8 @@ if query:
             
             for i, res in enumerate(results):
                 with cols[i]:
-                    img = Image.open(res['file_path'])
-                    st.image(img, use_container_width=True, caption=f"Score: {res['score']:.3f}")
+                    # The file_path is now a Public URL from Supabase
+                    st.image(res['file_path'], width='stretch', caption=f"Score: {res['score']:.3f}")
                     with st.expander("View Caption"):
                         st.write(res['caption'])
                 

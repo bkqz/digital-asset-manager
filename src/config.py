@@ -8,6 +8,8 @@ load_dotenv()
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 HF_TOKEN = os.getenv("HF_TOKEN")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 # --- Model Configurations ---
 # Vision Model: For image captioning
@@ -25,6 +27,9 @@ PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "digital-asset-manager")
 _raw_host = os.getenv("PINECONE_HOST")
 # Pinecone SDK's Index(host=...) expects the host without https:// prefix
 PINECONE_HOST = _raw_host.replace("https://", "") if _raw_host else None
+
+# --- Supabase Configuration ---
+SUPABASE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME", "assets")
 
 # --- Storage Paths ---
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -45,6 +50,10 @@ def validate_config():
         missing.append("GROQ_API_KEY")
     if not HF_TOKEN:
         missing.append("HF_TOKEN")
+    if not SUPABASE_URL:
+        missing.append("SUPABASE_URL")
+    if not SUPABASE_KEY:
+        missing.append("SUPABASE_KEY")
     
     if missing:
         raise EnvironmentError(f"Missing environment variables: {', '.join(missing)}. "
