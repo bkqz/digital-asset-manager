@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+env/
+.venv/
+
+# Secrets
+.env
+
+# Docker
+.dockerignore
+
+# Gemini CLI
+GEMINI.md
+
+# OS
+.DS_Store

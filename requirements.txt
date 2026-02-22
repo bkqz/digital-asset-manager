@@ -1,0 +1,9 @@
+streamlit>=1.31.0
+pinecone
+langchain-groq
+python-dotenv
+langchain
+langchain-community
+pillow
+requests
+huggingface_hub
