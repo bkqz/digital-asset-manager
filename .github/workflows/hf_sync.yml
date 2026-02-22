@@ -1,0 +1,20 @@
+name: Sync to Hugging Face Hub
+on:
+  push:
+    branches: [main]
+  # to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Push to hub
+        uses: huggingface/hub-sync@v1
+        with:
+          github_repo_id: bkqz/digital-asset-manager
+          huggingface_repo_id: bkqz/digital-asset-manager # Replace with your HF repo ID if different
+          hf_token: ${{ secrets.HF_TOKEN_SYNC }}
