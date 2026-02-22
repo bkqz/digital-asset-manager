@@ -24,46 +24,49 @@ This project addresses the challenge of retrieving unstructured visual data thro
 %%{init: { 
   'theme': 'base',
   'themeVariables': {
-    'fontSize': '18px',
-    'fontFamily': 'arial',
+    'fontSize': '20px',
+    'fontFamily': 'inter, sans-serif',
     'primaryColor': '#ffffff',
-    'primaryBorderColor': '#000000',
-    'lineColor': '#333333',
-    'tertiaryColor': '#f4f4f4'
+    'primaryBorderColor': '#1A237E',
+    'lineColor': '#212121',
+    'tertiaryColor': '#FAFAFA'
+  },
+  'flowchart': {
+    'nodeSpacing': 50,
+    'rankSpacing': 80,
+    'padding': 20
   }
 }}%%
 
 flowchart LR
     %% High-Contrast Class Definitions
-    classDef ingestion fill:#BBDEFB,stroke:#0D47A1,stroke-width:3px,color:#000000,font-weight:bold;
-    classDef storage fill:#FFF9C4,stroke:#FBC02D,stroke-width:3px,color:#000000,font-weight:bold;
-    classDef query fill:#E1BEE7,stroke:#4A148C,stroke-width:3px,color:#000000,font-weight:bold;
+    classDef ingestion fill:#E3F2FD,stroke:#1565C0,stroke-width:4px,color:#0D47A1,font-weight:800;
+    classDef storage fill:#FFFDE7,stroke:#F9A825,stroke-width:4px,color:#BF360C,font-weight:800;
+    classDef query fill:#F3E5F5,stroke:#7B1FA2,stroke-width:4px,color:#4A148C,font-weight:800;
 
-    subgraph INGESTION ["INGESTION PIPELINE (PRE-PROCESSING)"]
+    subgraph INGESTION ["📥 INGESTION FLOW (ASYNCHRONOUS)"]
         direction TB
-        A[Local Image] --> B[Supabase Storage]
-        B --> C[Llama 4 Vision]
-        C --> D[Generate Caption]
-        D --> E[Embedding Model]
-        E --> F[(Pinecone Index)]
+        IMG_UPLOAD[Image Upload] --> SUPA_STORE[Supabase Storage]
+        SUPA_STORE --> LLAMA_VISION[Llama 4 Vision Captioning]
+        LLAMA_VISION --> EMBED_GEN[Generate Vector Embeddings]
+        EMBED_GEN -- "Caption + URL + Vector" --> PINECONE[(Pinecone Index)]
     end
 
-    subgraph QUERY ["USER QUERY FLOW (REAL-TIME)"]
+    subgraph QUERY ["🔍 USER QUERY FLOW (REAL-TIME)"]
         direction TB
-        G[Text Search] --> H[Embedding Model]
-        H --> I[Similarity Search]
-        I -- Returns URL --> F
-        F -- Context Injection --> J[Llama 3.3 Reasoning]
-        J --> K[Streamlit UI]
+        USER_INPUT[Natural Language Query] --> QUERY_EMBED[Embed Search Query]
+        QUERY_EMBED -- Similarity Search --> PINECONE
+        PINECONE -- "Top-K Matches" --> STREAMLIT_UI[Streamlit UI Display]
+        STREAMLIT_UI <-- "Contextual Reasoning" --> LLAMA_REASON[Llama 3.3 Reasoning]
     end
 
     %% Interaction Link
-    B -. Public URL .-> F
+    SUPA_STORE -. "Public URI Source" .-> PINECONE
     
     %% Applying Accessible Classes
-    class A,C,D,E ingestion;
-    class F,B storage;
-    class G,H,I,J,K query;
+    class IMG_UPLOAD,LLAMA_VISION,EMBED_GEN ingestion;
+    class PINECONE,SUPA_STORE storage;
+    class USER_INPUT,QUERY_EMBED,STREAMLIT_UI,LLAMA_REASON query;
 ```
 
 ### Engineering Decisions
