@@ -15,4 +15,5 @@ env/
 GEMINI.md
 
 # OS
+data/
 .DS_Store

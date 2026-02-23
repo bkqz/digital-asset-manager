@@ -167,5 +167,5 @@ if chat_input := st.chat_input("e.g., 'Which of these photos is best for a socia
         st.session_state.messages.append({"role": "assistant", "content": response.content})
 
 # --- Footer ---
-st.divider()
-st.caption("Architecture: Multi-modal RAG-driven Digital Asset Manager | Powered by Groq, Pinecone, and Supabase.")
+with st.container():
+    st.caption("Architecture: Multi-modal RAG-driven Digital Asset Manager | Powered by Groq, Pinecone, and Supabase.")
