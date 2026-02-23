@@ -44,7 +44,7 @@ flowchart LR
     classDef storage fill:#FFF9C4,stroke:#FBC02D,stroke-width:3px,color:#000000,font-weight:bold,padding:15px;
     classDef query fill:#E1BEE7,stroke:#4A148C,stroke-width:3px,color:#000000,font-weight:bold,padding:15px;
 
-    subgraph INGESTION ["📥 INGESTION FLOW"]
+    subgraph INGESTION ["INGESTION FLOW"]
         direction TB
         A["`**Image Upload**`"] --> B["`**Supabase Storage**`"]
         B --> C["`**Llama 4 Vision**<br/>(Caption Generation)`"]
@@ -52,12 +52,12 @@ flowchart LR
         D -- "Metadata" --> E[(Pinecone Index)]
     end
 
-    subgraph QUERY ["🔍 USER QUERY FLOW"]
+    subgraph QUERY ["USER QUERY FLOW"]
         direction TB
         F["`**Text Search**`"] --> G["`**Query Embedding**`"]
         G -- "Similarity Search" --> E
         E -- "Top-K Matches" --> H["`**Streamlit UI**`"]
-        H <-- "Context Injection" --> I["`**Llama 3.3**<br/>(Reasoning)`"]
+        H <-- "Contextual Reasoning" --> I["`**Llama 3.3**<br/>(Reasoning)`"]
     end
 
     %% Interaction Link
