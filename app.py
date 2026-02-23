@@ -17,16 +17,18 @@ st.set_page_config(
 
 # --- Header & UX Guidance ---
 st.title("🖼️ Multimodal Digital Asset Manager (RAG)")
-st.markdown("Search your local image library using natural language and AI-generated captions.")
+st.subheader("Talk to your image library")
+st.markdown("""
+    Find any asset in seconds using natural language. 
+    This app automatically captions, indexes, and reasons over your private collection of images.
+""")
 
-with st.expander("📖 How this system works", expanded=False):
+with st.expander("🚀 Get Started in 4 Steps", expanded=False):
     st.markdown("""
-    This is a **Private Retrieval-Augmented Generation (RAG)** system. It does not search the public web.
-    
-    1.  **Step 1: Upload Assets** - Use the sidebar to upload local images (`.jpg`, `.png`) to your private Supabase bucket.
-    2.  **Step 2: Indexing** - Click **'Process & Index'** to trigger Llama-4-Scout Vision analysis. This writes a detailed caption and generates a 768-dim vector for each image.
-    3.  **Step 3: Semantic Search** - Describe a photo in plain English (e.g., 'a peaceful landscape') to find matches from your indexed collection.
-    4.  **Step 4: Reasoning Chat** - Ask questions about the retrieved results (e.g., 'Which of these is most suitable for a nature blog?').
+    1. **Upload**: Drop your images into the sidebar.
+    2. **Index**: Click 'Sync Library' to let Llama-4 analyze and vectorize your assets.
+    3. **Search**: Type a description (e.g., *'sunset over the skyline'*) to find matches.
+    4. **Chat**: Ask follow-up questions about your retrieved results.
     """)
 
 # --- Initialization ---
@@ -45,13 +47,18 @@ llm = ChatGroq(
 
 # --- Sidebar: Ingestion Control ---
 with st.sidebar:
-    st.header("📤 Upload Assets")
-    uploaded_files = st.file_uploader("Choose images...", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+    st.header("📥 Add New Assets")
+    uploaded_files = st.file_uploader(
+        "Drop files here", 
+        type=["jpg", "jpeg", "png"], 
+        accept_multiple_files=True,
+        help="Supported formats: JPG, PNG. Max 5MB per file."
+    )
     
     st.header("⚙️ Ingestion Engine")
     if st.button("Process & Index Assets"):
         if uploaded_files:
-            with st.status("🚀 Processing Assets...", expanded=True) as status:
+            with st.status("Analyzing visual data...", expanded=True) as status:
                 for i, uploaded_file in enumerate(uploaded_files):
                     # Save locally temporarily
                     file_path = os.path.join(config.UPLOAD_DIR, uploaded_file.name)
@@ -79,45 +86,61 @@ with st.sidebar:
     st.info("Backend: Pinecone (768-dim) | HF Inference | Llama-4-Scout")
 
 # --- Main UI: Semantic Search ---
-st.subheader("🔍 Semantic Search")
-query = st.text_input("Describe the image you're looking for:", placeholder="e.g. 'a photo of a seagull over the ocean' or 'urban architecture'")
-st.caption("⚠️ The search is strictly limited to assets currently indexed in your private Supabase library.")
+st.subheader("🔍 Find an Asset")
+query = st.text_input("Search by description", placeholder="e.g. 'office space' or 'man looking at beautiful lanscape'", label_visibility="collapsed")
+st.caption("⚠️ The search is strictly limited to assets currently indexed in Pinecone.")
 
 if query:
-    with st.spinner("Retrieving from Pinecone..."):
+    with st.spinner("Searching your library..."):
         results = retrieve_similar_images(query, top_k=3)
         
         if results:
-            st.subheader("🎯 Top Matches")
-            st.info("💡 Note: Matches with a similarity score below **40%** may be less relevant to your query.")
-            cols = st.columns(3)
-            
-            context_text = "Retrieved Image Context:\n"
-            
-            for i, res in enumerate(results):
-                with cols[i]:
-                    # Display from Supabase Public URL
-                    st.image(res['file_path'], width='stretch')
-                    st.metric("Similarity Match", f"{res['score']:.1%}")
-                    with st.expander("📝 AI Analysis"):
-                        st.write(res['caption'])
+            # Use st.container for a cleaner "Card" look
+            with st.container(border=True):
+                st.write(f"### 🎯 Results for: '*{query}*'")
+                st.info("💡 Note: Matches with a confidence score below **40%** may be less relevant.")
                 
-                context_text += f"- Image {i+1}: {res['caption']}\n"
-            
-            st.session_state.retrieved_context = context_text
+                cols = st.columns(3)
+                context_text = "Retrieved Image Context:\n"
+                
+                for i, res in enumerate(results):
+                    with cols[i]:
+                        # High-quality image display
+                        st.image(res['file_path'], use_container_width=True)
+                        
+                        # Logic for color-coded metrics
+                        score = res['score']
+                        # 'normal' = green, 'off' = gray/red in some Streamlit themes
+                        color_mode = "normal" if score > 0.4 else "off" 
+                        
+                        st.metric(
+                            label="AI Confidence", 
+                            value=f"{score:.0%}", 
+                            delta_color=color_mode
+                        )
+                        
+                        with st.expander("👁️ View AI Insights"):
+                            st.caption("Generated Visual Caption:")
+                            st.write(res['caption'])
+                    
+                    context_text += f"- Image {i+1}: {res['caption']}\n"
+                
+                # Store context for the Reasoning Chat
+                st.session_state.retrieved_context = context_text
         else:
-            st.error("No relevant images found in your collection.")
+            st.error("No relevant images found. Try a different description or ensure your assets are indexed.")
 
 # --- Chat Interface (Asset Reasoning) ---
 st.divider()
-st.subheader("💬 Asset Reasoning")
+st.subheader("💬 Ask the Assistant")
+st.caption("Ask questions about the images found above. The assistant only knows what it sees in the search results.")
 
 # Display chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if chat_input := st.chat_input("Ask a question about the retrieved images..."):
+if chat_input := st.chat_input("e.g., 'Which of these photos is best for a social media header?'"):
     st.session_state.messages.append({"role": "user", "content": chat_input})
     with st.chat_message("user"):
         st.markdown(chat_input)
