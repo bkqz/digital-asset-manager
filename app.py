@@ -3,7 +3,6 @@ import os
 import time
 from PIL import Image
 from langchain_groq import ChatGroq
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
 import src.config as config
 from src.ingestion import ingest_image_to_pinecone
@@ -16,8 +15,19 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- Header & UX Guidance ---
 st.title("🖼️ Multimodal Digital Asset Manager (RAG)")
 st.markdown("Search your local image library using natural language and AI-generated captions.")
+
+with st.expander("📖 How this system works", expanded=False):
+    st.markdown("""
+    This is a **Private Retrieval-Augmented Generation (RAG)** system. It does not search the public web.
+    
+    1.  **Step 1: Upload Assets** - Use the sidebar to upload local images (`.jpg`, `.png`) to your private Supabase bucket.
+    2.  **Step 2: Indexing** - Click **'Process & Index'** to trigger Llama-4-Scout Vision analysis. This writes a detailed caption and generates a 768-dim vector for each image.
+    3.  **Step 3: Semantic Search** - Describe a photo in plain English (e.g., 'a peaceful landscape') to find matches from your indexed collection.
+    4.  **Step 4: Reasoning Chat** - Ask questions about the retrieved results (e.g., 'Which of these is most suitable for a nature blog?').
+    """)
 
 # --- Initialization ---
 if "messages" not in st.session_state:
@@ -33,72 +43,74 @@ llm = ChatGroq(
     temperature=0.5
 )
 
-# --- Sidebar: Upload & Stats ---
+# --- Sidebar: Ingestion Control ---
 with st.sidebar:
     st.header("📤 Upload Assets")
     uploaded_files = st.file_uploader("Choose images...", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
     
-    if st.button("Process & Index"):
+    st.header("⚙️ Ingestion Engine")
+    if st.button("Process & Index Assets"):
         if uploaded_files:
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-            
-            for i, uploaded_file in enumerate(uploaded_files):
-                # Save locally
-                file_path = os.path.join(config.UPLOAD_DIR, uploaded_file.name)
-                with open(file_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
+            with st.status("🚀 Processing Assets...", expanded=True) as status:
+                for i, uploaded_file in enumerate(uploaded_files):
+                    # Save locally temporarily
+                    file_path = os.path.join(config.UPLOAD_DIR, uploaded_file.name)
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    st.write(f"Analyzing `{uploaded_file.name}` with Llama 4 Vision...")
+                    
+                    try:
+                        ingest_image_to_pinecone(file_path)
+                        st.write(f"✅ Indexed: `{uploaded_file.name}`")
+                    except Exception as e:
+                        st.error(f"❌ Error processing {uploaded_file.name}: {e}")
+                        continue
                 
-                # Ingest to Pinecone
-                status_text.text(f"Indexing: {uploaded_file.name}...")
-                try:
-                    ingest_image_to_pinecone(file_path)
-                except Exception as e:
-                    st.error(f"❌ Error processing {uploaded_file.name}: {e}")
-                    # Continue with next file or stop? For now, we continue.
-                    continue
-                
-                progress_bar.progress((i + 1) / len(uploaded_files))
+                status.update(label="Index Update Complete!", state="complete", expanded=False)
             
-            st.success(f"Successfully indexed {len(uploaded_files)} images!")
-            time.sleep(2)
+            st.success(f"Indexed {len(uploaded_files)} assets in Pinecone & Supabase.")
+            time.sleep(1)
             st.rerun()
         else:
             st.warning("Please select files first.")
 
     st.divider()
-    st.info("System: Pinecone (768-dim) | HF Inference | Llama-4-Scout")
+    st.info("Backend: Pinecone (768-dim) | HF Inference | Llama-4-Scout")
 
-# --- Main UI: Search & Retrieval ---
-query = st.text_input("🔍 Search your assets (e.g., 'a peaceful landscape' or 'bird in flight')")
+# --- Main UI: Semantic Search ---
+st.subheader("🔍 Semantic Search")
+query = st.text_input("Describe the image you're looking for:", placeholder="e.g. 'a photo of a seagull over the ocean' or 'urban architecture'")
+st.caption("⚠️ The search is strictly limited to assets currently indexed in your private Supabase library.")
 
 if query:
-    with st.spinner("Searching..."):
-        # Make sure to set PYTHONPATH if needed when running locally
+    with st.spinner("Retrieving from Pinecone..."):
         results = retrieve_similar_images(query, top_k=3)
         
         if results:
-            st.subheader("🎯 Top Results")
+            st.subheader("🎯 Top Matches")
+            st.info("💡 Note: Matches with a similarity score below **40%** may be less relevant to your query.")
             cols = st.columns(3)
             
-            context_text = "Here are the most relevant images found:\n"
+            context_text = "Retrieved Image Context:\n"
             
             for i, res in enumerate(results):
                 with cols[i]:
-                    # The file_path is now a Public URL from Supabase
-                    st.image(res['file_path'], width='stretch', caption=f"Score: {res['score']:.3f}")
-                    with st.expander("View Caption"):
+                    # Display from Supabase Public URL
+                    st.image(res['file_path'], width='stretch')
+                    st.metric("Similarity Match", f"{res['score']:.1%}")
+                    with st.expander("📝 AI Analysis"):
                         st.write(res['caption'])
                 
-                context_text += f"- Image {i+1} (Path: {res['file_path']}): {res['caption']}\n"
+                context_text += f"- Image {i+1}: {res['caption']}\n"
             
             st.session_state.retrieved_context = context_text
         else:
-            st.error("No relevant images found.")
+            st.error("No relevant images found in your collection.")
 
-# --- Chat Interface (The RAG Logic) ---
+# --- Chat Interface (Asset Reasoning) ---
 st.divider()
-st.subheader("💬 Chat about your Assets")
+st.subheader("💬 Asset Reasoning")
 
 # Display chat history
 for message in st.session_state.messages:
@@ -106,25 +118,20 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 if chat_input := st.chat_input("Ask a question about the retrieved images..."):
-    # Add user message to state
     st.session_state.messages.append({"role": "user", "content": chat_input})
     with st.chat_message("user"):
         st.markdown(chat_input)
 
-    # Generate Response
     with st.chat_message("assistant"):
-        # Build prompt using chat context
-        history = ""
-        for msg in st.session_state.messages[-5:]: # Last 5 messages for history
-            history += f"{msg['role']}: {msg['content']}\n"
-            
         full_system_prompt = f"""
-        You are a helpful assistant for a Digital Asset Manager.
+        You are an expert digital asset assistant.
         
-        Context from retrieved images:
         {st.session_state.retrieved_context}
         
-        Answer the user's question based ONLY on the provided context. If no images have been retrieved yet, ask the user to perform a search first. Be concise and professional.
+        Rules:
+        1. Answer based ONLY on the provided context of retrieved images.
+        2. If no images are retrieved, politely ask the user to perform a search first.
+        3. Be professional and concise.
         """
         
         messages = [
@@ -137,4 +144,4 @@ if chat_input := st.chat_input("Ask a question about the retrieved images..."):
         st.session_state.messages.append({"role": "assistant", "content": response.content})
 
 # --- Footer ---
-st.caption("Powered by Groq, Pinecone, and Hugging Face.")
+st.caption("Architecture: Multi-modal RAG-driven Digital Asset Manager | Powered by Groq, Pinecone, and Supabase.")
